@@ -125,8 +125,7 @@ os.listdir(EXTRACT_ROOT)
 
 path = "/content/drive/MyDrive/BSC THESIS ALZHEIMERS/OASIS1_extracted/disc12/OAS1_0421_MR1/RAW"
 os.listdir(path)
-#gif non servono
-#hdr+img = 3D image
+#hdr + img = 3D image
 
 # checking length, width, height and number of channels
 
