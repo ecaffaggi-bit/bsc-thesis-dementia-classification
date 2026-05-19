@@ -1,5 +1,4 @@
-# bsc-thesis-dementia-classification
-# Dementia Classification with ResNet-18 and MedViT
+# Dementia Classification with ResNet-18 and MedViT - BSc Thesis - Cognitive Science and Artificial Intelligence
 
 This project investigates Alzheimer’s disease classification using MRI scans from the OASIS-1 dataset. It compares a CNN-based model (ResNet-18) and a hybrid CNN vision transformer-based model (MedViT) under the same experimental setting.
 
