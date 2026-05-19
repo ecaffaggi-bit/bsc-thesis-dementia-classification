@@ -1078,6 +1078,7 @@ def get_medvit(num_classes=2):
 # Must be equal to ResNet for fair comparison
 
 def objective(trial):
+    # hyperparameters chosen for this Optuna trial
     lr = trial.suggest_categorical('lr', [1e-4, 5e-4, 1e-3])
     wd = trial.suggest_categorical('weight_decay', [1e-5, 1e-4, 1e-3])
 
@@ -1088,15 +1089,20 @@ def objective(trial):
     t_loader = DataLoader(train_ds, batch_size=8, shuffle=True,  num_workers=2)
     v_loader = DataLoader(val_ds,   batch_size=8, shuffle=False, num_workers=2)
 
+    # Initialize the MedViT model, loss function and optimizer
     model     = get_medvit()
     criterion = nn.CrossEntropyLoss(weight=class_weights.to(device))
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=wd)
 
+    # Track best validation loss and early stopping patience
     best_val_loss = float('inf')
     patience_count = 0
 
-    for epoch in range(20):  # shorter search epochs
+    # Train for a small number of epochs during hyperparameter search
+    for epoch in range(20): 
         model.train()
+        
+        # Training step
         for inputs, labels, _ in t_loader:
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
@@ -1104,18 +1110,25 @@ def objective(trial):
             loss.backward()
             optimizer.step()
 
+        # Validation step
         model.eval()
         val_loss = 0
         with torch.no_grad():
             for inputs, labels, _ in v_loader:
                 inputs, labels = inputs.to(device), labels.to(device)
                 val_loss += criterion(model(inputs), labels).item() * inputs.size(0)
+
+        # Compute average validation loss 
         val_loss /= len(val_ds)
 
+        # Report current validation loss to Optuna
         trial.report(val_loss, epoch)
+
+        # Stop early if the trial should be pruned
         if trial.should_prune():
             raise optuna.exceptions.TrialPruned()
 
+        # Manual early stopping based on validation loss
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             patience_count = 0
@@ -1126,6 +1139,7 @@ def objective(trial):
 
     return best_val_loss
 
+# Create Optuna study that minimizes validation loss
 study = optuna.create_study(direction='minimize',
                              pruner=optuna.pruners.MedianPruner())
 study.optimize(objective, n_trials=15)
@@ -1377,6 +1391,6 @@ def plot_confusion_matrix(model, checkpoint_path, test_loader, device, title):
     plt.savefig(f"/content/drive/MyDrive/BSC THESIS ALZHEIMERS/cm_{title.replace(' ', '_')}.png", dpi=150)
     plt.show()
 
-# Carica i checkpoint e chiama la funzione
+# Upload the checkpoints and call the function
 plot_confusion_matrix(resnet_scratch, RESNET_SCRATCH_SAVE, test_loader, device, "ResNet-18 From Scratch")
 plot_confusion_matrix(medvit, MEDVIT_SAVE, test_loader, device, "MedViT From Scratch")
