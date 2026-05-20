@@ -241,18 +241,18 @@ for hdr_path in tqdm(t88_files):
     label = labels[subj]
 
     try:
-        # STEP 1 — Load + RAS reorientation
+        # Load + RAS reorientation
         img = nib.load(hdr_path)
         img = nib.as_closest_canonical(img)
         vol = np.squeeze(img.get_fdata())
 
-        # STEP 2 — Z-score normalization
+        # Z-score normalization
         vol = zscore_normalize(vol)
 
-        # STEP 3 — Extract 10 center AXIAL slices
+        # Extract 10 center AXIAL slices
         slices = get_center_slices(vol, center=88, n=10)
 
-        # STEP 4 — Resize, convert to RGB scale and save to MyDrive
+        # Resize, convert to RGB scale and save to MyDrive
         for idx, sl in slices:
             sl_resized = cv2.resize(sl, (224, 224))
 
@@ -441,16 +441,22 @@ def get_slices_for_subjects(subject_df, dataset_root):
     slice_paths = []
     slice_labels = []
 
+    # loop over each subject in the subject level dataframe
     for _, row in subject_df.iterrows():
+        # get the subject ID/name and its label for this row
         subj  = row["subject"]
         label = row["label"]
+        # find all slice images for this subject within the label folder
         slices = glob.glob(f"{dataset_root}/{label}/{subj}_slice_*.png")
 
+        # warn if no slice images were found for this subject
         if len(slices) == 0:
             print(f"WARNING: no slices found for {subj}")
             continue
 
+        # add all found slice paths to full list
         slice_paths.extend(slices)
+        # add matching label once for each slice
         slice_labels.extend([label] * len(slices))
 
     return slice_paths, slice_labels
@@ -627,8 +633,8 @@ class AddGaussianNoise:
 
 # ImageNet mean/std used for ResNet-18 (pretrained on ImageNet)
 # and kept for MedViT (trained from scratch) for consistency
-IMAGENET_MEAN = [0.485, 0.456, 0.406]
-IMAGENET_STD  = [0.229, 0.224, 0.225]
+imagenet_mean = [0.485, 0.456, 0.406]
+imagenet_std  = [0.229, 0.224, 0.225]
 
 # TRANSFORMS
 train_transforms = transforms.Compose([
@@ -639,13 +645,13 @@ train_transforms = transforms.Compose([
     transforms.ColorJitter(brightness=0.2),
     transforms.ToTensor(),
     AddGaussianNoise(mean=0.0, std=0.1),
-    transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
+    transforms.Normalize(mean=imagenet_mean, std=imagenet_std)
 ])
 
 val_test_transforms = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
+    transforms.Normalize(mean=imagenet_mean, std=imagenet_std)
 ])
 
 """##Visualization of Augmentation"""
@@ -890,15 +896,21 @@ def train_model(model, train_loader, val_loader, criterion, optimizer,
         for inputs, labels, _ in train_loader:
             inputs, labels = inputs.to(device), labels.to(device)
 
+            # reset gradients to zero 
             optimizer.zero_grad()
+            # perform forward pass
             outputs = model(inputs)
 
             _, preds = torch.max(outputs, 1)
+            # compute the loss between batch predictions ground truth
             loss = criterion(outputs, labels)
 
+            # compute gradients of the loss with respect to model weights
             loss.backward()
+            # update model weights
             optimizer.step()
 
+            # compute training statistics
             running_loss += loss.item() * inputs.size(0)
             running_corrects += torch.sum(preds == labels.data)
 
@@ -917,8 +929,10 @@ def train_model(model, train_loader, val_loader, criterion, optimizer,
                 inputs = inputs.to(device)
                 labels = labels.to(device)
 
+                # forward pass
                 outputs = model(inputs)
                 _, preds = torch.max(outputs, 1)
+                # loss on the current batch 
                 loss = criterion(outputs, labels)
 
                 running_loss += loss.item() * inputs.size(0)
@@ -936,6 +950,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer,
               f"train loss: {train_loss:.4f}  train acc: {train_acc:.4f}  "
               f"val loss: {val_loss:.4f}  val acc: {val_acc:.4f}")
 
+        # update learning rate 
         if scheduler is not None:
             scheduler.step()
 
