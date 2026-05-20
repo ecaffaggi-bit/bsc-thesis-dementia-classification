@@ -34,13 +34,6 @@ Each 3D volume is converted into 2D slices for model training.
 - opencv-python
 - imageio
 
-## Usage
-Run the main script after setting the correct dataset paths and output directories.
-
-```bash
-python bsc_thesis_vero.py
-```
-
 ## Outputs
 - Preprocessed slice images
 - Train/validation/test split CSV files
@@ -49,6 +42,3 @@ python bsc_thesis_vero.py
 - Grad-CAM visualizations
 - Comparison figures for the thesis
 
-## Notes
-- The dataset is relatively small, so results should be interpreted with care.
-- This repository is intended for research and thesis purposes.
